@@ -1,0 +1,36 @@
+@startuml MAPEK_Guardrails
+title Gird the Grid - Ciclo MAPE-K com Guardrails de Seguranca Fisica
+skinparam componentStyle rectangle
+left to right direction
+
+package "Sistema gerenciado: Rede Eletrica" {
+    database "Subestacoes / SCADA" as SE
+}
+
+package "Gerenciador Autonomico" {
+    [MONITOR\nconsome telemetria do Kafka\nutilizacao por subestacao] as M
+    [ANALYZE\ndetecta FALHA ou utilizacao > 90%\ncalcula kW excedentes] as A
+    [PLAN\nTier 1: SLM local\nTier 2: LLM em nuvem\nFallback: Strategy] as P
+    [GUARDRAILS DE SEGURANCA FISICA\nG1 destino em falha\nG2 destino <= 90% da capacidade\nG3 carga valida\nG4 > 500 kW exige humano\nG5 mesmo tenant] as G #FFCCCC
+    [EXECUTE\ncomando de manobra\nvia API Gateway Industrial] as E
+    database "KNOWLEDGE\nlimites, topologia,\nhistorico, Banco Vetorial" as K
+}
+
+actor "Operador\n(human-in-the-loop)" as OP
+database "Audit DB" as AUD
+
+SE --> M : estado consolidado pelo Worker via Kafka
+M --> A
+A --> P
+P --> G : plano proposto
+G --> E : aprovada
+G --> AUD : bloqueada (motivo)
+G --> OP : manobra > 500 kW
+OP --> E : aprova manobraId pelo painel e gateway
+E --> SE : manobra
+E --> AUD : registra
+K ..> M
+K ..> A
+K ..> P
+K ..> G
+@enduml
