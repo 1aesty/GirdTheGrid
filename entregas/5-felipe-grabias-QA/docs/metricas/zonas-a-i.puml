@@ -1,0 +1,32 @@
+@startuml Zonas_A_I
+title Gird the Grid - Pacotes por zona (Abstracionalidade x Instabilidade)
+skinparam rectangleFontSize 13
+left to right direction
+
+rectangle "ANTES (As-Is)" {
+    rectangle "Zona da Dor\n(concreto e estavel)" as ZD #F8CECC {
+        rectangle "P3 PersistenciaInfra\nI = 0,14 | A = 0,00 | D = 0,86" as P3a
+    }
+    rectangle "Desvio da sequencia principal" as DV #FFE6CC {
+        rectangle "P2 StreamingIngestao\nI = 0,50 | A = 0,00 | D = 0,50" as P2a
+        rectangle "P1 AnaliseRegrasNegocio\nI = 0,80 | A = 0,00 | D = 0,20" as P1a
+    }
+}
+
+rectangle "DEPOIS (To-Be, com DIP)" {
+    rectangle "Sequencia principal (D <= 0,1)" as SP #D5E8D4 {
+        rectangle "P1 AnaliseRegrasNegocio\nI = 0,11 | A = 0,80 | D = 0,09" as P1b
+        rectangle "P2 StreamingIngestao\nI = 0,50 | A = 0,50 | D = 0,00" as P2b
+        rectangle "P3 PersistenciaInfra\nI = 1,00 | A = 0,00 | D = 0,00" as P3b
+    }
+}
+
+P1a --> P1b : extrai 4 portas
+P2a --> P2b : extrai IEventos e IStreamPartitioner
+P3a --> P3b : passa a implementar as portas
+
+note bottom of SP
+  D = |A + I - 1|
+  Sequencia principal: A + I = 1
+end note
+@enduml

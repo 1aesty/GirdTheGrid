@@ -1,0 +1,24 @@
+@startuml Pipeline_Fitness_Functions
+title Gird the Grid - Pipeline proposto de Fitness Functions (nao executado nesta entrega)
+
+start
+:Desenvolvedor abre Pull Request;
+:Checklist de governanca aparece\n(PULL_REQUEST_TEMPLATE.md);
+fork
+  :Testes unitarios\n(dotnet test);
+fork again
+  :ArchUnit\nRegra 1: Dominio nao depende da Infra\nRegra 2: Repositorios implementam interface;
+fork again
+  :Calculo de I, A e D\npor pacote;
+fork again
+  :Varredura de credenciais\n(Gitleaks + Secret Scanning);
+end fork
+if (Tudo passou?) then (sim)
+  :Revisor 1 (membro) aprova;
+  :Revisor 2 (lider) aprova;
+  :Merge liberado na main;
+else (nao)
+  #pink:Merge bloqueado\nautor corrige e reenvia;
+endif
+stop
+@enduml

@@ -1,0 +1,50 @@
+@startuml Visao_de_Pacotes_AsIs
+title Gird the Grid - Visao de pacotes As-Is (modelo da Sprint 2, antes do DIP)\nMesmas classes e setas da aba AsIs_Dependencias da planilha
+skinparam packageStyle rectangle
+hide empty members
+
+class ApiGatewayController <<Externo>>
+class EnvSecurityConfig <<Externo>>
+
+package "P1 - br.com.girdthegrid.analiseregrasnegocio" as P1 {
+    class AnalisadorTelemetriaService
+    class ProcessadorRegrasRede
+    class DetectorIntrusaoSec
+    class GeradorAlertaOperacional
+    class ConsolidadorDashboard
+}
+
+package "P2 - br.com.girdthegrid.streamingingestao" as P2 {
+    class KafkaEventBroker
+    class TenantPartitionRouter
+    class TelemetryStreamConsumer
+    class IngestaoBatchBuffer
+}
+
+package "P3 - br.com.girdthegrid.persistenciainfra" as P3 {
+    class TimeSeriesRepository
+    class AuditDbAdapter
+    class ScadaConnector
+    class MedidorDriver
+    class SiemIntegrationClient
+    class LegadoApiClient
+}
+
+ApiGatewayController ..> ConsolidadorDashboard
+ApiGatewayController ..> TelemetryStreamConsumer
+AnalisadorTelemetriaService ..> MedidorDriver
+ProcessadorRegrasRede ..> ScadaConnector
+ConsolidadorDashboard ..> TimeSeriesRepository
+DetectorIntrusaoSec ..> TimeSeriesRepository
+GeradorAlertaOperacional ..> KafkaEventBroker
+TelemetryStreamConsumer ..> TimeSeriesRepository
+IngestaoBatchBuffer ..> AuditDbAdapter
+SiemIntegrationClient ..> EnvSecurityConfig
+LegadoApiClient ..> EnvSecurityConfig
+
+note bottom of P3
+  Zona da Dor: Ca = 6 | Ce = 1 -> I = 0,14 | A = 0 | D = 0,86
+  Setas reconstruidas a partir das descricoes da Sprint 2;
+  reproduzem os totais publicados (Tabela 3).
+end note
+@enduml
