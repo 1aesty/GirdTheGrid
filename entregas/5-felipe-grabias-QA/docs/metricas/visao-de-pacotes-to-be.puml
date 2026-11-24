@@ -1,0 +1,65 @@
+@startuml Visao_de_Pacotes_ToBe
+title Gird the Grid - Visao de pacotes To-Be (base das metricas I e A)\nMesmas classes e setas da aba ToBe_Dependencias da planilha
+skinparam packageStyle rectangle
+hide empty members
+
+class ApiGatewayController <<Externo>>
+
+package "P1 - br.com.girdthegrid.analiseregrasnegocio" as P1 {
+    class MotorAnaliseRegrasService
+    interface ITelemetria
+    interface IPersistencia
+    interface IIntegracaoExterna
+    interface IAnaliseUseCase
+}
+
+package "P2 - br.com.girdthegrid.streamingingestao" as P2 {
+    interface IEventos
+    interface IStreamPartitioner
+    class KafkaStreamingAdapter
+    class TelemetryStreamConsumer
+}
+
+package "P3 - br.com.girdthegrid.persistenciainfra" as P3 {
+    class TimeSeriesRepository
+    class AuditDbAdapter
+    class ScadaAdapter
+    class MedidorAdapter
+    class SiemAdapter
+    class LegadoAdapter
+}
+
+ApiGatewayController ..> IAnaliseUseCase : usa
+ApiGatewayController ..> IEventos : usa
+
+MotorAnaliseRegrasService ..|> IAnaliseUseCase
+MotorAnaliseRegrasService ..> ITelemetria : usa
+MotorAnaliseRegrasService ..> IPersistencia : usa
+MotorAnaliseRegrasService ..> IIntegracaoExterna : usa
+MotorAnaliseRegrasService ..> IEventos : assina e publica
+
+KafkaStreamingAdapter ..|> IEventos
+KafkaStreamingAdapter ..|> IStreamPartitioner
+TelemetryStreamConsumer ..> ITelemetria : usa
+TelemetryStreamConsumer ..> IPersistencia : usa
+
+TimeSeriesRepository ..|> ITelemetria
+AuditDbAdapter ..|> IPersistencia
+ScadaAdapter ..|> IIntegracaoExterna
+MedidorAdapter ..|> IIntegracaoExterna
+SiemAdapter ..|> IIntegracaoExterna
+LegadoAdapter ..|> IIntegracaoExterna
+
+note bottom of P1
+  Ca = 8 (ApiGatewayController, TelemetryStreamConsumer e os 6 adapters de P3)
+  Ce = 1 (IEventos)  ->  I = 0,11 | A = 4/5 = 0,80 | D = 0,09
+end note
+note bottom of P2
+  Ca = 2 (ApiGatewayController, MotorAnaliseRegrasService)
+  Ce = 2 (ITelemetria, IPersistencia)  ->  I = 0,50 | A = 0,50 | D = 0,00
+end note
+note bottom of P3
+  Ca = 0 | Ce = 3 (ITelemetria, IPersistencia, IIntegracaoExterna)
+  I = 1,00 | A = 0,00 | D = 0,00
+end note
+@enduml
