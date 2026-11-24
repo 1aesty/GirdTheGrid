@@ -1,0 +1,57 @@
+flowchart LR
+    subgraph CAMPO[Dispositivos de Campo]
+        direction TB
+        MED[100k+ Medidores IoT<br/>Residenciais e Comerciais]
+        SCADA[Estações SCADA / RTUs<br/>Subestações]
+    end
+
+    subgraph BORDA[Borda e Ingestão Industrial]
+        direction TB
+        LB{{Load Balancer<br/>L4 / L7}}
+        GWI[API Gateway Industrial<br/>EMQX MQTT/TLS + Envoy mTLS]
+        ING[Serviço de Ingestão .NET 8<br/>ConectorFactory + Adapters]
+        VAL{Validador de Schema<br/>JSON Schema telemetria.v1}
+    end
+
+    subgraph MENSAGERIA[Barramento de Eventos Distribuído]
+        direction TB
+        K[(Apache Kafka Cluster<br/>Tópico: telemetria.v1<br/>Chave: tenantId + medidorId<br/>RF=3, min.isr=2)]
+        DLQ[(Tópico: telemetria.dlq<br/>Poison Pills & Falhas Esgotadas)]
+    end
+
+    subgraph CONSUMIDORES[Camada de Processamento e Aplicação]
+        direction TB
+        subgraph CG_RULES[Consumer Group: rules-workers]
+            W1[Worker Regras #1]
+            W2[Worker Regras #2]
+            WN[Worker Regras #N]
+        end
+        subgraph CG_MAPEK[Consumer Group: mapek-engine]
+            MAPEK[Serviço Autonômico MAPE-K<br/>IA + Guardrails]
+        end
+    end
+
+    subgraph PERSISTENCIA[Armazenamento e Legado]
+        direction TB
+        TS[(TimescaleDB<br/>Time-Series Telemetria)]
+        AUD[(Audit DB<br/>PostgreSQL Imutável)]
+        LEG[[Cadastro Clientes Legado<br/>Protegido por Polly]]
+    end
+
+    %% Conexões
+    MED -->|MQTT QoS 1 / TLS 1.3| LB
+    SCADA -->|HTTPS / mTLS ou XML| LB
+    LB --> GWI
+    GWI --> ING
+    ING --> VAL
+    VAL -->|Payload Válido| K
+    VAL -.->|Schema Inválido / Poison Pill| DLQ
+
+    K --> CG_RULES
+    K --> CG_MAPEK
+
+    W1 --> TS
+    W1 --> AUD
+    W1 -.->|Consulta ACL + Circuit Breaker| LEG
+
+    CG_RULES -.->|Falha Transitória Esgotada| DLQ

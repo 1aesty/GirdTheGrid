@@ -1,0 +1,51 @@
+flowchart LR
+    subgraph INGESTAO[Camada de Eventos]
+        K[(Kafka telemetria.v1)]
+    end
+
+    subgraph MAPEK[Gerenciador Autonômico MAPE-K]
+        direction TB
+        M[MONITOR<br/>Consome Kafka em tempo real<br/>Métricas e agregações temporais]
+        A[ANALYZE<br/>Detecta subestações com carga > 90%<br/>ou status em FALHA]
+        P[PLAN - Inteligência Artificial<br/>Tier 1: SLM Local On-Premises<br/>Tier 2: LLM em Nuvem<br/>Tier 3: Fallback Strategy Determinístico]
+        KNOW[(KNOWLEDGE<br/>Topologia, Limites Físicos,<br/>Banco Vetorial Qdrant)]
+    end
+
+    subgraph SEGURANCA[Mecanismo Determinístico de Segurança]
+        direction TB
+        G{{GUARDRAILS DE SEGURANÇA FÍSICA<br/>Validação Cumulativa}}
+        G1[G1: Destino Não Pode Estar em Falha]
+        G2[G2: Destino Carga <= 90% da Capacidade]
+        G3[G3: Delta Carga > 0 e <= Origem]
+        G4[G4: Manobras > 500 kW Exigem Humano]
+        G5[G5: Mesmo Tenant Concessionária]
+    end
+
+    subgraph ATUACAO[Execução e Auditoria]
+        OP([Operador Humano<br/>Human-in-the-Loop])
+        E[EXECUTE<br/>Comando de Manobra gRPC]
+        GW[API Gateway Industrial / SCADA]
+        AUD[(Audit DB Imutável<br/>Rastreabilidade LGPD / PRODIST)]
+    end
+
+    K --> M --> A --> P
+    KNOW -.-> M
+    KNOW -.-> A
+    KNOW -.-> P
+    KNOW -.-> G
+
+    P -->|Proposta de Manobra JSON| G
+    G --- G1
+    G --- G2
+    G --- G3
+    G --- G4
+    G --- G5
+
+    G -->|Reprovada por G1/G2/G3/G5| AUD
+    G -.->|Plano Rejeitado| P
+    G -->|Requer Aprovação: Regra G4| OP
+    OP -->|Aprovado pelo Operador| E
+    G -->|Aprovada Automaticamente: <= 500 kW| E
+
+    E -->|gRPC: ExecutarManobra| GW
+    E -->|Registro de Execução| AUD

@@ -1,0 +1,20 @@
+flowchart TD
+    subgraph SINCRONO[Comunicação Síncrona - Protegida por Polly]
+        REQ[Chamada Externa / Legado] --> TIMEOUT[1. Timeout Policy<br/>Limite estrito de 2s]
+        TIMEOUT --> CB{2. Circuit Breaker<br/>3 falhas -> Abre 30s}
+        CB -->|Circuito Fechado| EXEC[Executa Chamada HTTP/REST]
+        CB -->|Circuito Aberto| FALLBACK[4. Fallback Policy<br/>Retorna Cache Local / Degradação]
+        EXEC -->|Erro Transitório / 5xx| RETRY[3. Retry Policy<br/>Backoff Exponencial + Jitter]
+        RETRY -->|Tentativa 1: 1s<br/>Tentativa 2: 2s<br/>Tentativa 3: 4s| EXEC
+        RETRY -->|Esgotou tentativas| CB
+    end
+
+    subgraph ASSINCRONO[Processamento Assíncrono - Apache Kafka]
+        EVENTO[(Kafka telemetria.v1)] --> POLL[Consumer Worker<br/>Idempotent Consumer]
+        POLL --> CHECK_SCHEMA{Validação de Schema}
+        CHECK_SCHEMA -->|Poison Pill / JSON Quebrado| DLQ_IMEDIATA[(telemetria.dlq<br/>Sem Retry)]
+        CHECK_SCHEMA -->|Válido| PROCESSA[Gravação Banco TimescaleDB / Regras]
+        PROCESSA -->|Falha Conexão BD| RETRY_ASYNC[Retry em Memória com Backoff<br/>1s, 2s, 4s, 8s]
+        RETRY_ASYNC -->|Sucesso| COMMIT[Commit Manual do Offset]
+        RETRY_ASYNC -->|Esgotou Limite| DLQ_FINAL[(telemetria.dlq<br/>Com Header de Diagnóstico)]
+    end
