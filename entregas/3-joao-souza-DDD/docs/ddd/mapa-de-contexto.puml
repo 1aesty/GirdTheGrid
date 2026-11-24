@@ -1,0 +1,40 @@
+@startuml Mapa_de_Contexto
+title Gird the Grid - Mapa de Contexto (DDD)
+skinparam componentStyle rectangle
+left to right direction
+
+package "Core Domain" #FFF2CC {
+    [Analise de Regras da Rede] as REGRAS
+    [Autonomia (MAPE-K)] as AUTO
+}
+
+package "Supporting Subdomains" #DAE8FC {
+    [Telemetria / Streaming] as TEL
+    [Auditoria LGPD] as AUD
+    [Alertas a Operadores] as ALE
+}
+
+package "Generic Subdomains" #E1D5E7 {
+    [SSO + MFA] as IDP
+    [SIEM] as SIEM
+}
+
+package "Sistemas Legados" #F8CECC {
+    [SCADA (XML)] as SCADA
+    [Cadastro de Clientes] as CAD
+}
+
+AUTO --> REGRAS : Customer / Supplier
+TEL --> REGRAS : Published Language\n(eventos Kafka)
+REGRAS --> AUD : Eventos de dominio
+REGRAS --> ALE : Eventos de dominio
+AUD --> SIEM : Conformist
+IDP --> ALE : Open Host Service\n(OIDC)
+SCADA ==> TEL : <b>ACL</b>\n(ScadaAdapter)
+CAD ==> REGRAS : <b>ACL</b>\n(LegadoAdapter + Circuit Breaker)
+
+note bottom of SCADA
+  Termos do legado (RTU, PointValue, kWh_raw)
+  ficam presos na ACL e nunca chegam ao nucleo.
+end note
+@enduml
